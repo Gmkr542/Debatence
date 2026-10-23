@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: debatence-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: debatence-db
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: https://debatence.onrender.com
+  - type: web
+    name: debatence
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://debatence-api.onrender.com/api
+databases:
+  - name: debatence-db
+    databaseName: debatence
+    user: debatence
