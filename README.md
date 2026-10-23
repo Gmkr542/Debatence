@@ -84,3 +84,28 @@ This starter is not production-ready. Add authentication, authorization, databas
 Viewer requests are now stored by the API in the `debate_role_requests` table. The debate initiator can see pending requests on any device and approve or reject them. Approval persists the user's `Debater` role for that debate in `debate_member_roles`; the client reads the role from the API when opening the debate.
 
 The backend currently uses the user/initiator IDs supplied by the client for these checks. This makes the flow persist across devices, but is not a substitute for authenticated accounts and verified authorization. Add account authentication before treating role changes as security-sensitive in production.
+
+
+## Product updates in this package
+
+This build includes roadmap-oriented improvements:
+- Debate discovery through title/description search.
+- Debate lifecycle states (open, paused, completed), with initiator controls.
+- Backend prevents new argument submissions while a debate is paused or completed.
+- Debate activity summary endpoint and UI (counts, participants, recent arguments; not a winner verdict).
+- Database health/readiness check.
+- Additive database columns for lifecycle, debate format, duration, and timestamps.
+- Automatic debate-feed refresh and initiator role-request queue polling.
+- Existing AI stance analysis and evidence attachment workflows retained.
+
+### Configuration
+Set `VITE_API_URL` for the frontend API root (including `/api`), `DATABASE_URL` for the backend database,
+`CORS_ORIGINS` for allowed frontend origins, and `OPENAI_API_KEY` / `OPENAI_MODEL` to enable AI stance analysis.
+
+### Security and feature boundaries
+The current app's identity mechanism uses a client-held generated user ID. It is suitable for a prototype,
+not production authentication: IDs can be spoofed. Do not expose sensitive/private debates until real
+authentication and server-verified ownership are integrated. This build's activity summary is deterministic;
+it does not declare a debate winner. WebSocket delivery, robust user accounts, moderation workflows,
+email notifications, follower/community features, tournaments, and infrastructure observability remain
+separate production work and are not represented as completed here.
