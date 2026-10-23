@@ -10,23 +10,40 @@ from . import models, schemas
 
 Base.metadata.create_all(bind=engine)
 # Additive migration for existing deployments.
+# Add missing columns without dropping or resetting existing records.
 from sqlalchemy import inspect, text
+
 with engine.begin() as conn:
-    columns = {c['name'] for c in inspect(engine).get_columns('debates')}
-    if 'creator_id' not in columns:
-        conn.execute(text('ALTER TABLE debates ADD COLUMN creator_id VARCHAR(100)'))
-    if 'creator_name' not in columns:
-        conn.execute(text('ALTER TABLE debates ADD COLUMN creator_name VARCHAR(100)'))
-    arg_columns = {c['name'] for c in inspect(engine).get_columns('arguments')}
+    inspector = inspect(conn)
+
+    # Migrate debates table.
+    debate_columns = {column["name"] for column in inspector.get_columns("debates")}
     for column, definition in {
-        'ai_stance': 'VARCHAR(20)',
-        'stance_match': 'VARCHAR(30)',
-        'ai_confidence': 'VARCHAR(20)',
-        'ai_analysis': 'TEXT',
-        'ai_status': "VARCHAR(20) DEFAULT 'pending'",
+        "creator_id": "VARCHAR(100)",
+        "creator_name": "VARCHAR(100)",
+        "status": "VARCHAR(20) NOT NULL DEFAULT 'open'",
+        "category": "VARCHAR(80) NOT NULL DEFAULT 'General'",
+        "debate_format": "VARCHAR(40) NOT NULL DEFAULT 'Open discussion'",
+        "duration_minutes": "INTEGER NOT NULL DEFAULT 0",
+    }.items():
+        if column not in debate_columns:
+            conn.execute(
+                text(f"ALTER TABLE debates ADD COLUMN {column} {definition}")
+            )
+
+    # Migrate arguments table.
+    arg_columns = {column["name"] for column in inspector.get_columns("arguments")}
+    for column, definition in {
+        "ai_stance": "VARCHAR(20)",
+        "stance_match": "VARCHAR(30)",
+        "ai_confidence": "VARCHAR(20)",
+        "ai_analysis": "TEXT",
+        "ai_status": "VARCHAR(20) DEFAULT 'pending'",
     }.items():
         if column not in arg_columns:
-            conn.execute(text(f'ALTER TABLE arguments ADD COLUMN {column} {definition}'))
+            conn.execute(
+                text(f"ALTER TABLE arguments ADD COLUMN {column} {definition}")
+            )
 
 app = FastAPI(title="Debatence API", version="1.0.0")
 origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
