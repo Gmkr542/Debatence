@@ -111,6 +111,7 @@ export default function App() {
     } catch(e) { setError(e.message) } finally { setBusy(false) }
   }
   return <main className="shell">
+    <style>{`.comments-modal-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(10,15,25,.58);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px}.comments-modal{width:min(600px,100%);height:min(720px,88vh);display:flex;flex-direction:column;overflow:hidden;background:var(--card-bg,#fff);color:var(--text-color,#1f2937);border:1px solid rgba(128,128,128,.22);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.32)}.comments-modal-titlebar{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(128,128,128,.2);flex-shrink:0}.comments-modal-titlebar h3{margin:0}.comments-modal-close{width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:26px;cursor:pointer}.comments-modal-close:hover{background:rgba(128,128,128,.14)}.comments-modal .comments-heading{flex-shrink:0;padding:12px 22px}.comments-modal .youtube-comment-form{flex-shrink:0;padding:12px 20px;border-top:1px solid rgba(128,128,128,.2);border-bottom:0;order:3}.comments-modal .comment-list{flex:1;min-height:0;overflow-y:auto;padding:16px 22px;order:2}.comments-modal .comments-heading{order:1}@media(max-width:600px){.comments-modal-backdrop{padding:10px}.comments-modal{height:88vh;border-radius:14px}}`}</style>
     <header><div className="brand"><span className="mark">D</span><div><b>Debatence</b><small>Make your case. Back it up.</small></div></div><div className="header-right"><span className="online">● API connected when available</span><div className="profile-chip"><span className="profile-avatar" style={{backgroundColor:profileColor}}>{author[0]?.toUpperCase() || "U"}</span><div className="profile-fields"><input aria-label="Your profile name" value={author} onChange={e=>updateProfile({name:e.target.value})}/><small>{role} · {userId}</small></div></div></div></header>
     {error && <div className="error">{error}<button onClick={()=>setError('')}>×</button></div>}
     <div className="layout"><aside><div className="section-head"><div><small>YOUR WORKSPACE</small><h2>Debates</h2></div><span className="count">{debates.length}</span></div>
@@ -123,202 +124,31 @@ export default function App() {
     <section className="room">{active ? <><div className="room-title"><div><small>DEBATE ROOM</small><h1>{active.title}</h1><div className="creator-line">Created by <b>{active.creator_name || debateCreators[active.id]?.name || (ownedDebates.includes(active.id) ? author : 'Debate initiator')}</b><span className="role-pin role-admin">{active.creator_id===userId || ownedDebates.includes(active.id) ? 'INITIATOR' : 'CREATOR'}</span></div><p>{active.description || 'Share clear arguments and support them with evidence.'}</p></div><span className="count">{active.arguments?.length || 0} posts</span></div>
       <div className="debate-meta"><span className={`status-pill status-${active.status||'open'}`}>{(active.status||'open').toUpperCase()}</span>
       {active.creator_id===userId && <div className="lifecycle-actions">{['open','paused','completed'].map(st=><button key={st} className="secondary" onClick={async()=>{try{const d=await request(`/debates/${active.id}?initiator_id=${encodeURIComponent(userId)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:st})});setActive(d);await refresh()}catch(e){setError(e.message)}}}>{st}</button>)}</div>}</div>
-           <div className="engagement">
-        <button
-          onClick={async () => {
-            try {
-              await request(`/debates/${active.id}/vote`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, vote: 'up' }),
-              });
-              setDebateStats(
-                await request(
-                  `/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`
-                )
-              );
-            } catch (e) {
-              setError(e.message);
-            }
-          }}
-        >
-          ▲ {debateStats?.upvotes || 0}
-        </button>
-
-        <button
-          onClick={async () => {
-            try {
-              await request(`/debates/${active.id}/vote`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, vote: 'down' }),
-              });
-              setDebateStats(
-                await request(
-                  `/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`
-                )
-              );
-            } catch (e) {
-              setError(e.message);
-            }
-          }}
-        >
-          ▼ {debateStats?.downvotes || 0}
-        </button>
-
-        <button
-          onClick={async () => {
-            try {
-              await request(`/debates/${active.id}/bookmark?user_id=${encodeURIComponent(userId)}`, {
-                method: 'POST',
-              });
-              setDebateStats(
-                await request(
-                  `/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`
-                )
-              );
-            } catch (e) {
-              setError(e.message);
-            }
-          }}
-        >
-          {debateStats?.bookmarked ? '★ Saved' : '☆ Save debate'}
-        </button>
-      </div>
-
-      <button
-        className="comments-toggle"
-        type="button"
-        onClick={() => setCommentsOpen((open) => !open)}
-        aria-expanded={commentsOpen}
-      >
-        {commentsOpen ? 'Hide comments' : `Comments (${comments.length})`}
+      <div className="engagement"><button onClick={async()=>{try{await request(`/debates/${active.id}/vote`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId,vote:'up'})});setDebateStats(await request(`/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`))}catch(e){setError(e.message)}}}>▲ {debateStats?.upvotes||0}</button><button onClick={async()=>{try{await request(`/debates/${active.id}/vote`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId,vote:'down'})});setDebateStats(await request(`/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`))}catch(e){setError(e.message)}}}>▼ {debateStats?.downvotes||0}</button><button onClick={async()=>{try{await request(`/debates/${active.id}/bookmark?user_id=${encodeURIComponent(userId)}`,{method:'POST'});setDebateStats(await request(`/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`))}catch(e){setError(e.message)}}>{debateStats?.bookmarked ? '★ Saved' : '☆ Save debate'}</button></div>
+      <button className="comments-toggle" type="button" onClick={() => setCommentsOpen(true)}>
+        {`Comments (${comments.length})`}
       </button>
-
       {commentsOpen && (
-        <section className="comments-panel youtube-comments">
+        <div className="comments-modal-backdrop" onClick={() => setCommentsOpen(false)}>
+        <section className="comments-modal youtube-comments" role="dialog" aria-modal="true" aria-labelledby="comments-modal-title" onClick={e => e.stopPropagation()}>
+          <div className="comments-modal-titlebar"><h3 id="comments-modal-title">Comments ({comments.length})</h3><button type="button" className="comments-modal-close" aria-label="Close comments" onClick={() => setCommentsOpen(false)}>×</button></div>
           <div className="comments-heading">
-            <div>
-              <h3>
-                Comments <span>{comments.length}</span>
-              </h3>
-              <p>Join the conversation around this debate.</p>
-            </div>
-
-            <label className="comment-sort">
-              Sort by
-              <select
-                value={commentSort}
-                onChange={(e) => setCommentSort(e.target.value)}
-              >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-              </select>
-            </label>
+            <div><h3>Comments <span>{comments.length}</span></h3><p>Join the conversation around this debate.</p></div>
+            <label className="comment-sort">Sort by <select value={commentSort} onChange={e => setCommentSort(e.target.value)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
           </div>
-
-          <form
-            className="youtube-comment-form"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (!commentText.trim()) return;
-
-              try {
-                await request(`/debates/${active.id}/comments`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    user_id: userId,
-                    user_name: author,
-                    body: commentText,
-                  }),
-                });
-
-                setCommentText('');
-                setComments(await request(`/debates/${active.id}/comments`));
-                setDebateStats(
-                  await request(
-                    `/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`
-                  )
-                );
-              } catch (e) {
-                setError(e.message);
-              }
-            }}
-          >
-            <span className="comment-avatar">
-              {author[0]?.toUpperCase() || 'U'}
-            </span>
-
+          <form className="youtube-comment-form" onSubmit={async e => { e.preventDefault(); if (!commentText.trim()) return; try { await request(`/debates/${active.id}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, user_name: author, body: commentText }) }); setCommentText(''); setComments(await request(`/debates/${active.id}/comments`)); setDebateStats(await request(`/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`)); } catch (e) { setError(e.message); } }}>
+            <span className="comment-avatar">{author[0]?.toUpperCase() || 'U'}</span>
             <div className="comment-compose">
-              <input
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Add a comment…"
-                maxLength="3000"
-                aria-label="Add a comment"
-              />
-
-              <div className="comment-compose-actions">
-                <span>{commentText.length}/3000</span>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => setCommentText('')}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="primary"
-                  disabled={!commentText.trim() || active.status !== 'open'}
-                >
-                  Comment
-                </button>
-              </div>
+              <input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Add a comment…" maxLength="3000" aria-label="Add a comment" />
+              <div className="comment-compose-actions"><span>{commentText.length}/3000</span><button type="button" className="secondary" onClick={() => setCommentText('')}>Cancel</button><button className="primary" disabled={!commentText.trim() || active.status !== 'open'}>Comment</button></div>
             </div>
           </form>
-
           <div className="comment-list">
-            {[...comments]
-              .sort((a, b) =>
-                commentSort === 'newest'
-                  ? new Date(b.created_at || 0) - new Date(a.created_at || 0)
-                  : new Date(a.created_at || 0) - new Date(b.created_at || 0)
-              )
-              .map((c) => (
-                <article className="comment youtube-comment" key={c.id}>
-                  <span className="comment-avatar muted-avatar">
-                    {(c.user_name || 'U')[0]?.toUpperCase()}
-                  </span>
-
-                  <div className="comment-main">
-                    <div className="comment-user-line">
-                      <b>{c.user_name}</b>
-                      <span>
-                        {c.created_at
-                          ? new Date(c.created_at).toLocaleString()
-                          : ''}
-                      </span>
-                    </div>
-
-                    <p>{c.body}</p>
-
-                    <div className="comment-actions">
-                      <span title="Comments are shown chronologically">
-                        Discussion
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-
-            {!comments.length && (
-              <div className="comments-empty">
-                No comments yet. Be the first to share a thought.
-              </div>
-            )}
+            {[...comments].sort((a, b) => commentSort === 'newest' ? new Date(b.created_at || 0) - new Date(a.created_at || 0) : new Date(a.created_at || 0) - new Date(b.created_at || 0)).map(c => <article className="comment youtube-comment" key={c.id}><span className="comment-avatar muted-avatar">{(c.user_name || 'U')[0]?.toUpperCase()}</span><div className="comment-main"><div className="comment-user-line"><b>{c.user_name}</b><span>{c.created_at ? new Date(c.created_at).toLocaleString() : ''}</span></div><p>{c.body}</p><div className="comment-actions"><span title="Comments are shown chronologically">Discussion</span></div></div></article>)}
+            {!comments.length && <div className="comments-empty">No comments yet. Be the first to share a thought.</div>}
           </div>
         </section>
+        </div>
       )}
       <div className="thread">{(active.arguments || []).map(a=>{ const parts=(a.author||'Debater').split(' · '); const messageName=parts[0]||'Debater'; const messageRole=parts[1]||'Debater'; const messageId=parts[2]||'Guest'; const messageColor=parts[3]||roleColors[messageRole]||'#64748b'; const mine=messageId===userId; const isCreator=debateCreators[active.id]?.id===messageId || (ownedDebates.includes(active.id)&&mine); return <article className={`argument ${mine?'argument-mine':'argument-other'} ${isCreator?'argument-creator':''} role-${messageRole.toLowerCase()}`} key={a.id} style={{'--user-accent':messageColor}}><div className="avatar" style={{backgroundColor:`${messageColor}20`,color:messageColor}}>{messageName[0]?.toUpperCase()}</div><div className="argument-content"><div className="arg-head"><b>{messageName}</b><span className={`role-pin role-${messageRole.toLowerCase()}`}>{messageRole}</span><span className="user-id">{messageId}</span><span className={`stance ${a.stance}`}>{a.stance.toUpperCase()}</span>{mine&&<span className="you-pin">YOU</span>}</div><p>{a.body}</p><div className="badges ai-badges"><span className={`tag ai-${a.ai_status||'pending'}`}>AI {a.ai_status==='complete'?'stance':a.ai_status==='unavailable'?'not configured':a.ai_status==='failed'?'analysis failed':'analyzing'}</span>{a.ai_stance && <span className={`tag ai-stance-${a.ai_stance}`}>AI indicates: {({supports:'For',opposes:'Against',unrelated:'Unrelated',unclear:'Unclear',unable_to_assess:'Unable to assess'})[a.ai_stance]||a.ai_stance}</span>}{a.stance_match==='differs' && <span className="tag ai-mismatch">Stance differs from selection</span>}{a.ai_confidence && <span className="tag ai-confidence">Confidence: {a.ai_confidence}</span>}{a.ai_analysis && <span className="ai-explanation">{a.ai_analysis}</span>}</div>{(a.body||'').trim().split(/\s+/).length >= 8 && (a.point_status !== 'needs_review' || a.correctness !== 'unverified') && <div className="badges"><span className={`tag ${a.point_status}`}>{label[a.point_status]}</span><span className={`tag ${a.correctness}`}>{label[a.correctness]}</span></div>}{a.evidence_url && <a className="evidence" href={`${API.replace(/\/api$/, '')}${a.evidence_url}`} target="_blank" rel="noreferrer">↗ Evidence: {a.evidence_name}</a>}<button className="report-argument" onClick={async()=>{const reason=window.prompt('Report reason: spam, harassment, misinformation, abuse, or other','other');if(!reason)return;try{await request(`/debates/${active.id}/report`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reporter_id:userId,reason,argument_id:a.id})});setNotice('Report submitted for review.')}catch(e){setError(e.message)}}}>Report</button></div></article> })}
       {!active.arguments?.length && <div className="empty"><div>◌</div><h3>The floor is yours</h3><p>Start the discussion with your opening argument.</p></div>}</div>
