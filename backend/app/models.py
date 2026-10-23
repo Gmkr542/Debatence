@@ -24,6 +24,11 @@ class Argument(Base):
     correctness = Column(String(20), nullable=False, default="unverified")
     evidence_name = Column(String(255), nullable=True)
     evidence_url = Column(String(500), nullable=True)
+    ai_stance = Column(String(20), nullable=True)
+    stance_match = Column(String(30), nullable=True)
+    ai_confidence = Column(String(20), nullable=True)
+    ai_analysis = Column(Text, nullable=True)
+    ai_status = Column(String(20), nullable=False, default="pending")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     debate = relationship("Debate", back_populates="arguments")
 

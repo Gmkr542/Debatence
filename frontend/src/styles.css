@@ -49,3 +49,10 @@
 .request-actions{display:flex;gap:8px;align-items:center}
 .request-actions button{min-width:66px}
 .role-requests p{margin:4px 0;color:#7d879e;font-size:13px}
+
+.ai-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag.ai-complete,.tag.ai-stance-supports{background:#e7f6ee;color:#19734a}
+.tag.ai-mismatch{background:#fff0d9;color:#9b5b00}
+.tag.ai-unavailable,.tag.ai-failed{background:#f1f2f5;color:#667085}
+.ai-explanation{flex-basis:100%;font-size:12px;color:#7b8497;line-height:1.5}
+.role-requests .request-actions{display:flex;gap:8px}

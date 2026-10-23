@@ -10,6 +10,11 @@ class ArgumentCreate(BaseModel):
     correctness: str = "unverified"
     evidence_name: Optional[str] = None
     evidence_url: Optional[str] = None
+    ai_stance: Optional[str] = None
+    stance_match: Optional[str] = None
+    ai_confidence: Optional[str] = None
+    ai_analysis: Optional[str] = None
+    ai_status: str = "pending"
 
 class ArgumentOut(ArgumentCreate):
     id: int
@@ -53,3 +58,10 @@ class RoleDecision(BaseModel):
 
 class DebateRoleOut(BaseModel):
     role: str
+
+
+class RoleRequestStatusOut(BaseModel):
+    id: int
+    status: str
+    debate_id: int
+    model_config = ConfigDict(from_attributes=True)

@@ -17,6 +17,16 @@ with engine.begin() as conn:
         conn.execute(text('ALTER TABLE debates ADD COLUMN creator_id VARCHAR(100)'))
     if 'creator_name' not in columns:
         conn.execute(text('ALTER TABLE debates ADD COLUMN creator_name VARCHAR(100)'))
+    arg_columns = {c['name'] for c in inspect(engine).get_columns('arguments')}
+    for column, definition in {
+        'ai_stance': 'VARCHAR(20)',
+        'stance_match': 'VARCHAR(30)',
+        'ai_confidence': 'VARCHAR(20)',
+        'ai_analysis': 'TEXT',
+        'ai_status': "VARCHAR(20) DEFAULT 'pending'",
+    }.items():
+        if column not in arg_columns:
+            conn.execute(text(f'ALTER TABLE arguments ADD COLUMN {column} {definition}'))
 
 app = FastAPI(title="Debatence API", version="1.0.0")
 origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
@@ -84,6 +94,15 @@ def submit_role_request(debate_id: int, payload: schemas.RoleRequestCreate, db: 
     db.add(req); db.commit(); db.refresh(req)
     return req
 
+@app.get("/api/debates/{debate_id}/role-requests/status", response_model=list[schemas.RoleRequestOut])
+def role_request_status(debate_id: int, requester_id: str, db: Session = Depends(get_db)):
+    if not db.query(models.Debate).filter(models.Debate.id == debate_id).first():
+        raise HTTPException(404, "Debate not found")
+    return db.query(models.DebateRoleRequest).filter(
+        models.DebateRoleRequest.debate_id == debate_id,
+        models.DebateRoleRequest.requester_id == requester_id
+    ).order_by(models.DebateRoleRequest.created_at.desc()).all()
+
 @app.get("/api/debates/{debate_id}/role-requests", response_model=list[schemas.RoleRequestOut])
 def list_role_requests(debate_id: int, initiator_id: str, db: Session = Depends(get_db)):
     debate = db.query(models.Debate).filter(models.Debate.id == debate_id).first()
@@ -139,6 +158,42 @@ def get_debate_role(debate_id: int, user_id: str, db: Session = Depends(get_db))
     ).first()
     return {"role": member.role if member else "Viewer"}
 
+def analyze_argument_with_ai(topic: str, body: str, declared_stance: str):
+    """Return transparent stance analysis; if no provider key is configured, mark unavailable."""
+    import json
+    import urllib.request
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return {"ai_stance": "unable_to_assess", "stance_match": "unavailable",
+                "ai_confidence": "low", "ai_analysis": "AI analysis is not configured.",
+                "ai_status": "unavailable"}
+    prompt = f"""Analyze the argument stance, not factual truth. Debate topic: {topic}
+Declared stance: {declared_stance}
+Argument: {body}
+Return JSON only with keys ai_stance (supports, opposes, unrelated, unclear),
+stance_match (matches, differs, unclear), confidence (low, medium, high), explanation (brief).
+Do not infer evidence verification from stance."""
+    payload = {"model": os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+               "input": prompt, "text": {"format": {"type": "json_object"}}}
+    try:
+        req = urllib.request.Request("https://api.openai.com/v1/responses",
+            data=json.dumps(payload).encode(), headers={"Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=18) as response:
+            data = json.loads(response.read().decode())
+        out_text = data.get("output_text", "")
+        parsed = json.loads(out_text)
+        stance = parsed.get("ai_stance", "unclear")
+        match = parsed.get("stance_match", "unclear")
+        return {"ai_stance": stance, "stance_match": match,
+                "ai_confidence": parsed.get("confidence", "low"),
+                "ai_analysis": parsed.get("explanation", ""),
+                "ai_status": "complete"}
+    except Exception:
+        return {"ai_stance": "unclear", "stance_match": "unavailable",
+                "ai_confidence": "low", "ai_analysis": "AI stance analysis failed; retry later.",
+                "ai_status": "failed"}
+
 @app.post("/api/debates/{debate_id}/arguments", response_model=schemas.ArgumentOut, status_code=201)
 def create_argument(debate_id: int, payload: schemas.ArgumentCreate, db: Session = Depends(get_db)):
     if not db.query(models.Debate).filter(models.Debate.id == debate_id).first():
@@ -149,7 +204,9 @@ def create_argument(debate_id: int, payload: schemas.ArgumentCreate, db: Session
         raise HTTPException(422, "Invalid point_status")
     if payload.correctness not in {"correct", "incorrect", "unverified"}:
         raise HTTPException(422, "Invalid correctness")
-    item = models.Argument(debate_id=debate_id, **payload.model_dump())
+    debate = db.query(models.Debate).filter(models.Debate.id == debate_id).first()
+    analysis = analyze_argument_with_ai(debate.title, payload.body, payload.stance)
+    item = models.Argument(debate_id=debate_id, **payload.model_dump(), **analysis)
     db.add(item)
     db.commit()
     db.refresh(item)
