@@ -56,3 +56,15 @@
 .tag.ai-unavailable,.tag.ai-failed{background:#f1f2f5;color:#667085}
 .ai-explanation{flex-basis:100%;font-size:12px;color:#7b8497;line-height:1.5}
 .role-requests .request-actions{display:flex;gap:8px}
+
+/* Feature expansion: discovery, debate lifecycle, engagement and comment thread */
+.discovery-search{width:100%;border:1px solid #e3e6ef;border-radius:9px;padding:10px 11px;margin:0 0 12px;font:13px 'DM Sans'}
+.create select{width:100%;border:1px solid #e2e5ee;border-radius:9px;padding:10px;margin-bottom:9px;background:white;font:13px 'DM Sans';color:#555c70}
+.debate-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-12px 0 14px;color:#7c8398;font-size:12px}
+.status-pill{border-radius:7px;padding:5px 8px;font-size:10px;font-weight:800;letter-spacing:.5px}
+.status-open{background:#e7f7ed;color:#228858}.status-paused{background:#fff5df;color:#9a741e}.status-completed{background:#eceef4;color:#646b7e}
+.lifecycle-actions{display:flex;gap:5px}.lifecycle-actions button{font-size:11px;padding:6px 9px;text-transform:capitalize}
+.engagement{display:flex;gap:8px;margin-bottom:14px}.engagement button{border:1px solid #e4e6ef;background:#fff;border-radius:9px;padding:8px 12px;color:#5b5f75;font:600 12px 'DM Sans';cursor:pointer}
+.comments-panel{margin-top:18px;background:#fff;border:1px solid #e7e9f1;border-radius:14px;padding:16px}.comments-panel h3{margin:0 0 12px;font:700 14px Manrope}.comments-panel h3 span{font:12px 'DM Sans';color:#9298a8;margin-left:5px}.comment{border-top:1px solid #f0f1f5;padding:10px 0}.comment b{font-size:12px;color:#5a55c9}.comment p{font-size:13px;line-height:1.5;margin:5px 0;color:#4d5368}.comments-panel form{display:flex;gap:8px;margin-top:8px}.comments-panel input{min-width:0;flex:1;border:1px solid #e2e5ee;border-radius:9px;padding:10px;font:13px 'DM Sans'}
+@media(max-width:720px){.debate-meta{align-items:flex-start}.lifecycle-actions{width:100%}.comments-panel form{flex-wrap:wrap}.comments-panel form button{width:100%}}
+.report-argument{margin:10px 0 0 10px;border:0;background:transparent;color:#9298a8;font:11px 'DM Sans';cursor:pointer}.report-argument:hover{color:#c43d48}

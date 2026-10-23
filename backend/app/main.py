@@ -208,6 +208,16 @@ def create_argument(debate_id: int, payload: schemas.ArgumentCreate, db: Session
     analysis = analyze_argument_with_ai(debate.title, payload.body, payload.stance)
     item = models.Argument(debate_id=debate_id, **payload.model_dump(), **analysis)
     db.add(item)
+    # Reputation points reward contribution; author identity follows the current client profile convention.
+    author_parts = (payload.author or "").split(" · ")
+    if len(author_parts) >= 3:
+        author_id = author_parts[2].strip()
+        rep = db.query(models.UserReputation).filter_by(user_id=author_id).first()
+        if not rep:
+            rep = models.UserReputation(user_id=author_id, display_name=author_parts[0][:100], bio="", points=5)
+            db.add(rep)
+        else:
+            rep.points += 5
     db.commit()
     db.refresh(item)
     return item
@@ -224,3 +234,142 @@ async def upload_evidence(file: UploadFile = File(...)):
     safe_name = f"{uuid4().hex}{suffix}"
     (UPLOAD_DIR / safe_name).write_bytes(content)
     return {"filename": file.filename, "url": f"/uploads/{safe_name}"}
+
+
+# ---- Debate lifecycle, discovery, engagement, profiles and moderation ----
+from sqlalchemy import func
+
+@app.get("/api/discover")
+def discover_debates(q: str = "", category: str = "", status: str = "", sort: str = "recent",
+                     db: Session = Depends(get_db)):
+    query = db.query(models.Debate)
+    if q.strip():
+        term = f"%{q.strip()}%"
+        query = query.filter((models.Debate.title.ilike(term)) | (models.Debate.description.ilike(term)))
+    if category and category != "All":
+        query = query.filter(models.Debate.category == category)
+    if status:
+        query = query.filter(models.Debate.status == status)
+    if sort == "active":
+        query = query.outerjoin(models.Argument).group_by(models.Debate.id).order_by(func.count(models.Argument.id).desc())
+    else:
+        query = query.order_by(models.Debate.created_at.desc())
+    return query.all()
+
+@app.patch("/api/debates/{debate_id}")
+def update_debate(debate_id: int, payload: schemas.DebateUpdate, initiator_id: str,
+                  db: Session = Depends(get_db)):
+    debate = db.query(models.Debate).filter(models.Debate.id == debate_id).first()
+    if not debate: raise HTTPException(404, "Debate not found")
+    if debate.creator_id != initiator_id: raise HTTPException(403, "Only the initiator can update this debate")
+    data = payload.model_dump(exclude_unset=True)
+    if "status" in data and data["status"] not in {"open", "paused", "completed"}:
+        raise HTTPException(422, "status must be open, paused, or completed")
+    if "debate_format" in data and data["debate_format"] not in {"Open discussion", "Oxford", "Lincoln-Douglas", "Policy", "Timed rounds"}:
+        raise HTTPException(422, "Unsupported debate format")
+    for key, value in data.items():
+        setattr(debate, key, value)
+    db.commit(); db.refresh(debate)
+    return debate
+
+@app.get("/api/debates/{debate_id}/stats", response_model=schemas.DebateStatsOut)
+def debate_stats(debate_id: int, user_id: str = "", db: Session = Depends(get_db)):
+    debate = db.query(models.Debate).filter(models.Debate.id == debate_id).first()
+    if not debate: raise HTTPException(404, "Debate not found")
+    return {"debate_id": debate_id,
+            "upvotes": db.query(models.DebateVote).filter_by(debate_id=debate_id, vote="up").count(),
+            "downvotes": db.query(models.DebateVote).filter_by(debate_id=debate_id, vote="down").count(),
+            "comments": db.query(models.DebateComment).filter_by(debate_id=debate_id).count(),
+            "bookmarked": bool(user_id and db.query(models.DebateBookmark).filter_by(debate_id=debate_id,user_id=user_id).first())}
+
+@app.post("/api/debates/{debate_id}/vote")
+def vote_debate(debate_id: int, payload: schemas.VoteCreate, db: Session = Depends(get_db)):
+    if payload.vote not in {"up", "down"}: raise HTTPException(422, "vote must be up or down")
+    if not db.query(models.Debate).filter_by(id=debate_id).first(): raise HTTPException(404, "Debate not found")
+    row = db.query(models.DebateVote).filter_by(debate_id=debate_id,user_id=payload.user_id).first()
+    if row and row.vote == payload.vote:
+        db.delete(row); state = "removed"
+    elif row:
+        row.vote = payload.vote; state = "updated"
+    else:
+        db.add(models.DebateVote(debate_id=debate_id,user_id=payload.user_id,vote=payload.vote)); state = "added"
+    db.commit()
+    return {"status":state}
+
+@app.post("/api/debates/{debate_id}/bookmark")
+def toggle_bookmark(debate_id: int, user_id: str, db: Session = Depends(get_db)):
+    if not db.query(models.Debate).filter_by(id=debate_id).first(): raise HTTPException(404, "Debate not found")
+    row = db.query(models.DebateBookmark).filter_by(debate_id=debate_id,user_id=user_id).first()
+    if row: db.delete(row); result = False
+    else: db.add(models.DebateBookmark(debate_id=debate_id,user_id=user_id)); result = True
+    db.commit()
+    return {"bookmarked":result}
+
+@app.get("/api/debates/{debate_id}/comments")
+def list_comments(debate_id: int, db: Session = Depends(get_db)):
+    if not db.query(models.Debate).filter_by(id=debate_id).first(): raise HTTPException(404, "Debate not found")
+    return db.query(models.DebateComment).filter_by(debate_id=debate_id).order_by(models.DebateComment.created_at.asc()).all()
+
+@app.post("/api/debates/{debate_id}/comments", status_code=201)
+def create_comment(debate_id: int, payload: schemas.CommentCreate, db: Session = Depends(get_db)):
+    debate = db.query(models.Debate).filter_by(id=debate_id).first()
+    if not debate: raise HTTPException(404, "Debate not found")
+    if debate.status != "open": raise HTTPException(409, "This debate is not open for comments")
+    comment = models.DebateComment(debate_id=debate_id,user_id=payload.user_id,user_name=payload.user_name.strip(),body=payload.body.strip())
+    db.add(comment); db.commit(); db.refresh(comment)
+    return comment
+
+@app.post("/api/debates/{debate_id}/report", status_code=201)
+def report_content(debate_id: int, payload: schemas.ReportCreate, db: Session = Depends(get_db)):
+    if not db.query(models.Debate).filter_by(id=debate_id).first(): raise HTTPException(404, "Debate not found")
+    if payload.reason not in {"spam", "harassment", "misinformation", "abuse", "other"}:
+        raise HTTPException(422, "Invalid report reason")
+    if payload.argument_id and not db.query(models.Argument).filter_by(id=payload.argument_id,debate_id=debate_id).first():
+        raise HTTPException(404, "Argument not found in this debate")
+    row = models.ContentReport(debate_id=debate_id,argument_id=payload.argument_id,reporter_id=payload.reporter_id,
+        reason=payload.reason,details=payload.details,status="open")
+    db.add(row); db.commit(); db.refresh(row)
+    return {"id":row.id,"status":row.status,"message":"Report received for moderator review"}
+
+@app.get("/api/moderation/reports")
+def moderation_reports(status: str = "open", db: Session = Depends(get_db)):
+    return db.query(models.ContentReport).filter_by(status=status).order_by(models.ContentReport.created_at.asc()).all()
+
+@app.patch("/api/moderation/reports/{report_id}")
+def resolve_report(report_id: int, status: str, db: Session = Depends(get_db)):
+    if status not in {"reviewed", "dismissed"}: raise HTTPException(422, "status must be reviewed or dismissed")
+    report = db.query(models.ContentReport).filter_by(id=report_id).first()
+    if not report: raise HTTPException(404, "Report not found")
+    report.status = status; db.commit()
+    return {"id":report.id,"status":report.status}
+
+@app.put("/api/profile")
+def update_profile(payload: schemas.ProfileUpdate, db: Session = Depends(get_db)):
+    row = db.query(models.UserReputation).filter_by(user_id=payload.user_id).first()
+    if not row:
+        row = models.UserReputation(user_id=payload.user_id,display_name=payload.display_name.strip(),bio=payload.bio.strip(),points=0)
+        db.add(row)
+    else:
+        row.display_name=payload.display_name.strip(); row.bio=payload.bio.strip()
+    db.commit(); db.refresh(row)
+    return row
+
+@app.get("/api/profile/{user_id}")
+def get_profile(user_id: str, db: Session = Depends(get_db)):
+    row = db.query(models.UserReputation).filter_by(user_id=user_id).first()
+    if row: return row
+    args = db.query(models.Argument).filter(models.Argument.author.like(f"%{user_id}%")).count()
+    return {"user_id":user_id,"display_name":"Debatence member","bio":"","points":args*5}
+
+@app.get("/api/leaderboard")
+def leaderboard(limit: int = 20, db: Session = Depends(get_db)):
+    limit = min(max(limit,1),100)
+    rows = db.query(models.UserReputation).order_by(models.UserReputation.points.desc()).limit(limit).all()
+    return rows
+
+@app.get("/api/notifications/{user_id}")
+def notifications(user_id: str, db: Session = Depends(get_db)):
+    # Notifications are derived from role requests and replies/mentions are future-proofed here.
+    reqs = db.query(models.DebateRoleRequest).filter_by(requester_id=user_id).order_by(models.DebateRoleRequest.created_at.desc()).limit(30).all()
+    return [{"id":r.id,"type":"role_request","status":r.status,"created_at":r.created_at,
+             "message":f"Your request for debate #{r.debate_id} is {r.status}"} for r in reqs]

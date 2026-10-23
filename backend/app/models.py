@@ -8,6 +8,10 @@ class Debate(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
     description = Column(Text, default="")
+    status = Column(String(20), nullable=False, default="open")
+    category = Column(String(80), nullable=False, default="General")
+    debate_format = Column(String(40), nullable=False, default="Open discussion")
+    duration_minutes = Column(Integer, nullable=False, default=0)
     creator_id = Column(String(100), nullable=True)
     creator_name = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -49,3 +53,48 @@ class DebateMemberRole(Base):
     user_id = Column(String(100), nullable=False)
     user_name = Column(String(100), nullable=False)
     role = Column(String(20), nullable=False, default="Viewer")
+
+
+class DebateVote(Base):
+    __tablename__ = "debate_votes"
+    id = Column(Integer, primary_key=True, index=True)
+    debate_id = Column(Integer, ForeignKey("debates.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    vote = Column(String(10), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class DebateBookmark(Base):
+    __tablename__ = "debate_bookmarks"
+    id = Column(Integer, primary_key=True, index=True)
+    debate_id = Column(Integer, ForeignKey("debates.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class DebateComment(Base):
+    __tablename__ = "debate_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    debate_id = Column(Integer, ForeignKey("debates.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    user_name = Column(String(100), nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ContentReport(Base):
+    __tablename__ = "content_reports"
+    id = Column(Integer, primary_key=True, index=True)
+    debate_id = Column(Integer, ForeignKey("debates.id", ondelete="CASCADE"), nullable=False, index=True)
+    argument_id = Column(Integer, ForeignKey("arguments.id", ondelete="CASCADE"), nullable=True, index=True)
+    reporter_id = Column(String(100), nullable=False)
+    reason = Column(String(40), nullable=False)
+    details = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default="open")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class UserReputation(Base):
+    __tablename__ = "user_reputation"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(100), nullable=False, unique=True, index=True)
+    display_name = Column(String(100), nullable=False)
+    bio = Column(String(500), nullable=False, default="")
+    points = Column(Integer, nullable=False, default=0)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
