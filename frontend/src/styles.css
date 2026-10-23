@@ -68,3 +68,32 @@
 .comments-panel{margin-top:18px;background:#fff;border:1px solid #e7e9f1;border-radius:14px;padding:16px}.comments-panel h3{margin:0 0 12px;font:700 14px Manrope}.comments-panel h3 span{font:12px 'DM Sans';color:#9298a8;margin-left:5px}.comment{border-top:1px solid #f0f1f5;padding:10px 0}.comment b{font-size:12px;color:#5a55c9}.comment p{font-size:13px;line-height:1.5;margin:5px 0;color:#4d5368}.comments-panel form{display:flex;gap:8px;margin-top:8px}.comments-panel input{min-width:0;flex:1;border:1px solid #e2e5ee;border-radius:9px;padding:10px;font:13px 'DM Sans'}
 @media(max-width:720px){.debate-meta{align-items:flex-start}.lifecycle-actions{width:100%}.comments-panel form{flex-wrap:wrap}.comments-panel form button{width:100%}}
 .report-argument{margin:10px 0 0 10px;border:0;background:transparent;color:#9298a8;font:11px 'DM Sans';cursor:pointer}.report-argument:hover{color:#c43d48}
+
+/* Focused debate setup and YouTube-inspired comment thread */
+.create select,.create input[type="number"]{display:none!important}
+.youtube-comments{margin:18px 0 20px;padding:20px 22px}
+.comments-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px}
+.comments-heading h3{font:800 18px Manrope;margin:0;color:#20263a}
+.comments-heading h3 span{font:600 13px 'DM Sans';color:#858ba0;margin-left:7px}
+.comments-heading p{margin:5px 0 0;color:#8990a2;font-size:12px}
+.comment-sort{display:flex;align-items:center;gap:8px;color:#858ba0;font-size:12px;white-space:nowrap}
+.comment-sort select{border:1px solid #e5e7ef;border-radius:8px;background:white;padding:7px 9px;color:#42495d;font:600 12px 'DM Sans'}
+.youtube-comment-form{display:flex;gap:12px;align-items:flex-start;margin-bottom:20px}
+.comment-avatar{width:36px;height:36px;flex:0 0 36px;border-radius:50%;display:grid;place-items:center;background:#5e57d9;color:white;font-size:13px;font-weight:700}
+.muted-avatar{background:#e9eaf2;color:#596075}
+.comment-compose{flex:1;min-width:0}
+.comment-compose input{width:100%;border:0;border-bottom:1px solid #dfe2eb;border-radius:0;padding:8px 0;background:transparent;outline:none;font:14px 'DM Sans'}
+.comment-compose input:focus{border-bottom:2px solid #5e57d9}
+.comment-compose-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px}
+.comment-compose-actions>span{margin-right:auto;color:#9298a8;font-size:11px}
+.comment-compose-actions .secondary,.comment-compose-actions .primary{padding:8px 13px}
+.comment-list{display:grid;gap:17px}
+.youtube-comment{display:flex;gap:12px;border:0;padding:0}
+.comment-main{flex:1;min-width:0}
+.comment-user-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.comment-user-line b{font-size:12px;color:#353b50}
+.comment-user-line span{font-size:10px;color:#9a9fb0}
+.youtube-comment p{font-size:13px;line-height:1.65;margin:5px 0 7px;color:#454b5f;white-space:pre-wrap;overflow-wrap:anywhere}
+.comment-actions{display:flex;gap:16px;color:#8c92a4;font-size:11px}
+.comments-empty{text-align:center;padding:24px 8px;color:#8a90a1;font-size:13px;border-top:1px solid #f0f1f5}
+@media(max-width:650px){.youtube-comments{padding:15px}.comments-heading{flex-direction:column}.comment-sort{white-space:normal}.youtube-comment-form{gap:9px}.comment-avatar{width:31px;height:31px;flex-basis:31px}}
