@@ -97,3 +97,7 @@
 .comment-actions{display:flex;gap:16px;color:#8c92a4;font-size:11px}
 .comments-empty{text-align:center;padding:24px 8px;color:#8a90a1;font-size:13px;border-top:1px solid #f0f1f5}
 @media(max-width:650px){.youtube-comments{padding:15px}.comments-heading{flex-direction:column}.comment-sort{white-space:normal}.youtube-comment-form{gap:9px}.comment-avatar{width:31px;height:31px;flex-basis:31px}}
+
+/* Debate room comments are opt-in: open from a compact button. */
+.comments-toggle{display:inline-flex;align-items:center;justify-content:center;margin:16px 0 18px;padding:10px 16px;border:1px solid #e2e5ef;border-radius:10px;background:#fff;color:#5146d8;font-weight:650;cursor:pointer}
+.comments-toggle:hover{background:#f3f1ff;border-color:#c9c3ff}
