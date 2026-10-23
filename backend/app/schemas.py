@@ -28,3 +28,11 @@ class DebateOut(BaseModel):
     created_at: Optional[datetime] = None
     arguments: list[ArgumentOut] = []
     model_config = ConfigDict(from_attributes=True)
+
+
+class WebSearchRequest(BaseModel):
+    query: str = Field(min_length=2, max_length=500)
+
+class AnalyzeRequest(BaseModel):
+    body: str = Field(min_length=1, max_length=10000)
+    evidence: str = Field(default="", max_length=12000)

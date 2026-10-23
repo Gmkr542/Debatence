@@ -77,3 +77,16 @@ Evidence uploads are written to the API's local `uploads/` directory. Render web
 - Evidence attachments (local development storage)
 
 This starter is not production-ready. Add authentication, authorization, database migrations, upload scanning/limits, moderation, and durable object storage before public use.
+
+
+## Optional web research and AI indications
+
+Debatence can connect to web search and AI-assisted argument triage when configured with server-side provider keys. Add these in Render's **backend Web Service → Environment** settings (do not put secrets in frontend variables):
+
+- `TAVILY_API_KEY` — enables global web search and source snippets in the Evidence & AI review panel.
+- `OPENAI_API_KEY` — enables the AI review button for preliminary claim triage.
+- `OPENAI_MODEL` — optional model name; defaults to `gpt-4.1-mini`.
+
+The web search and AI review endpoints are `/api/research/search` and `/api/research/analyze`. The AI can suggest `Needs review`, `Valid point`, `Invalid point`, `Correct`, `Incorrect`, or `Unverified`, along with a reason and evidence-needed checklist. These are advisory, AI-generated signals—not authoritative fact checks. Users should inspect source links and independently verify claims. Provider usage may incur charges.
+
+After setting environment variables, redeploy the Render backend. No secrets should be committed to GitHub.
