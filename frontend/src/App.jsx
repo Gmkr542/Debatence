@@ -123,26 +123,200 @@ export default function App() {
     <section className="room">{active ? <><div className="room-title"><div><small>DEBATE ROOM</small><h1>{active.title}</h1><div className="creator-line">Created by <b>{active.creator_name || debateCreators[active.id]?.name || (ownedDebates.includes(active.id) ? author : 'Debate initiator')}</b><span className="role-pin role-admin">{active.creator_id===userId || ownedDebates.includes(active.id) ? 'INITIATOR' : 'CREATOR'}</span></div><p>{active.description || 'Share clear arguments and support them with evidence.'}</p></div><span className="count">{active.arguments?.length || 0} posts</span></div>
       <div className="debate-meta"><span className={`status-pill status-${active.status||'open'}`}>{(active.status||'open').toUpperCase()}</span>
       {active.creator_id===userId && <div className="lifecycle-actions">{['open','paused','completed'].map(st=><button key={st} className="secondary" onClick={async()=>{try{const d=await request(`/debates/${active.id}?initiator_id=${encodeURIComponent(userId)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:st})});setActive(d);await refresh()}catch(e){setError(e.message)}}}>{st}</button>)}</div>}</div>
-      <div className="engagement"><button onClick={async()=>{try{await request(`/debates/${active.id}/vote`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId,vote:'up'})});setDebateStats(await request(`/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`))}catch(e){setError(e.message)}}}>▲ {debateStats?.upvotes||0}</button><button onClick={async()=>{try{await request(`/debates/${active.id}/vote`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId,vote:'down'})});setDebateStats(await request(`/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`))}catch(e){setError(e.message)}}}>▼ {debateStats?.downvotes||0}</button><button onClick={async()=>{try{await request(`/debates/${active.id}/bookmark?user_id=${encodeURIComponent(userId)}`,{method:'POST'});setDebateStats(await request(`/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`))}catch(e){setError(e.message)}}>{debateStats?.bookmarked ? '★ Saved' : '☆ Save debate'}</button></div>
-      <button className="comments-toggle" type="button" onClick={() => setCommentsOpen(open => !open)} aria-expanded={commentsOpen}>
+           <div className="engagement">
+        <button
+          onClick={async () => {
+            try {
+              await request(`/debates/${active.id}/vote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, vote: 'up' }),
+              });
+              setDebateStats(
+                await request(
+                  `/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`
+                )
+              );
+            } catch (e) {
+              setError(e.message);
+            }
+          }}
+        >
+          ▲ {debateStats?.upvotes || 0}
+        </button>
+
+        <button
+          onClick={async () => {
+            try {
+              await request(`/debates/${active.id}/vote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, vote: 'down' }),
+              });
+              setDebateStats(
+                await request(
+                  `/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`
+                )
+              );
+            } catch (e) {
+              setError(e.message);
+            }
+          }}
+        >
+          ▼ {debateStats?.downvotes || 0}
+        </button>
+
+        <button
+          onClick={async () => {
+            try {
+              await request(`/debates/${active.id}/bookmark?user_id=${encodeURIComponent(userId)}`, {
+                method: 'POST',
+              });
+              setDebateStats(
+                await request(
+                  `/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`
+                )
+              );
+            } catch (e) {
+              setError(e.message);
+            }
+          }}
+        >
+          {debateStats?.bookmarked ? '★ Saved' : '☆ Save debate'}
+        </button>
+      </div>
+
+      <button
+        className="comments-toggle"
+        type="button"
+        onClick={() => setCommentsOpen((open) => !open)}
+        aria-expanded={commentsOpen}
+      >
         {commentsOpen ? 'Hide comments' : `Comments (${comments.length})`}
       </button>
+
       {commentsOpen && (
         <section className="comments-panel youtube-comments">
           <div className="comments-heading">
-            <div><h3>Comments <span>{comments.length}</span></h3><p>Join the conversation around this debate.</p></div>
-            <label className="comment-sort">Sort by <select value={commentSort} onChange={e => setCommentSort(e.target.value)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
+            <div>
+              <h3>
+                Comments <span>{comments.length}</span>
+              </h3>
+              <p>Join the conversation around this debate.</p>
+            </div>
+
+            <label className="comment-sort">
+              Sort by
+              <select
+                value={commentSort}
+                onChange={(e) => setCommentSort(e.target.value)}
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
+            </label>
           </div>
-          <form className="youtube-comment-form" onSubmit={async e => { e.preventDefault(); if (!commentText.trim()) return; try { await request(`/debates/${active.id}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, user_name: author, body: commentText }) }); setCommentText(''); setComments(await request(`/debates/${active.id}/comments`)); setDebateStats(await request(`/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`)); } catch (e) { setError(e.message); } }}>
-            <span className="comment-avatar">{author[0]?.toUpperCase() || 'U'}</span>
+
+          <form
+            className="youtube-comment-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!commentText.trim()) return;
+
+              try {
+                await request(`/debates/${active.id}/comments`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    user_id: userId,
+                    user_name: author,
+                    body: commentText,
+                  }),
+                });
+
+                setCommentText('');
+                setComments(await request(`/debates/${active.id}/comments`));
+                setDebateStats(
+                  await request(
+                    `/debates/${active.id}/stats?user_id=${encodeURIComponent(userId)}`
+                  )
+                );
+              } catch (e) {
+                setError(e.message);
+              }
+            }}
+          >
+            <span className="comment-avatar">
+              {author[0]?.toUpperCase() || 'U'}
+            </span>
+
             <div className="comment-compose">
-              <input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Add a comment…" maxLength="3000" aria-label="Add a comment" />
-              <div className="comment-compose-actions"><span>{commentText.length}/3000</span><button type="button" className="secondary" onClick={() => setCommentText('')}>Cancel</button><button className="primary" disabled={!commentText.trim() || active.status !== 'open'}>Comment</button></div>
+              <input
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Add a comment…"
+                maxLength="3000"
+                aria-label="Add a comment"
+              />
+
+              <div className="comment-compose-actions">
+                <span>{commentText.length}/3000</span>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setCommentText('')}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="primary"
+                  disabled={!commentText.trim() || active.status !== 'open'}
+                >
+                  Comment
+                </button>
+              </div>
             </div>
           </form>
+
           <div className="comment-list">
-            {[...comments].sort((a, b) => commentSort === 'newest' ? new Date(b.created_at || 0) - new Date(a.created_at || 0) : new Date(a.created_at || 0) - new Date(b.created_at || 0)).map(c => <article className="comment youtube-comment" key={c.id}><span className="comment-avatar muted-avatar">{(c.user_name || 'U')[0]?.toUpperCase()}</span><div className="comment-main"><div className="comment-user-line"><b>{c.user_name}</b><span>{c.created_at ? new Date(c.created_at).toLocaleString() : ''}</span></div><p>{c.body}</p><div className="comment-actions"><span title="Comments are shown chronologically">Discussion</span></div></div></article>)}
-            {!comments.length && <div className="comments-empty">No comments yet. Be the first to share a thought.</div>}
+            {[...comments]
+              .sort((a, b) =>
+                commentSort === 'newest'
+                  ? new Date(b.created_at || 0) - new Date(a.created_at || 0)
+                  : new Date(a.created_at || 0) - new Date(b.created_at || 0)
+              )
+              .map((c) => (
+                <article className="comment youtube-comment" key={c.id}>
+                  <span className="comment-avatar muted-avatar">
+                    {(c.user_name || 'U')[0]?.toUpperCase()}
+                  </span>
+
+                  <div className="comment-main">
+                    <div className="comment-user-line">
+                      <b>{c.user_name}</b>
+                      <span>
+                        {c.created_at
+                          ? new Date(c.created_at).toLocaleString()
+                          : ''}
+                      </span>
+                    </div>
+
+                    <p>{c.body}</p>
+
+                    <div className="comment-actions">
+                      <span title="Comments are shown chronologically">
+                        Discussion
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+
+            {!comments.length && (
+              <div className="comments-empty">
+                No comments yet. Be the first to share a thought.
+              </div>
+            )}
           </div>
         </section>
       )}
