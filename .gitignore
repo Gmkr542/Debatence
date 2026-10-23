@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Node / Vite
+node_modules/
+frontend/dist/
+frontend/.env*
+!frontend/.env.example
+
+# Local uploads and runtime files
+backend/uploads/
+*.db
+.DS_Store
