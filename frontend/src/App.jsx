@@ -52,7 +52,13 @@ export default function App() {
     try { const rows = await request('/debates'); setDebates(rows); if (active) setActive(rows.find(d => d.id === active.id) || null) }
     catch (e) { setError(`API unavailable: ${e.message}`) }
   }
-  useEffect(() => { localStorage.setItem('debatence-profile', JSON.stringify(profile)) }, [profile])\n  useEffect(() => { refresh() }, [])
+  useEffect(() => {
+  localStorage.setItem('debatence-profile', JSON.stringify(profile))
+}, [profile])
+
+useEffect(() => {
+  refresh()
+}, [])
   async function createDebate(e) {
     e.preventDefault(); if (!title.trim()) return
     try { const d = await request('/debates', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title, description})}); setTitle(''); setDescription(''); setActive(d); await refresh() }
