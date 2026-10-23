@@ -45,3 +45,7 @@
 .creator-line{display:flex;align-items:center;gap:8px;color:#7d879e;font-size:12px;margin-top:3px;margin-bottom:7px}
 .creator-line b{color:#3b4560}
 @media(max-width:720px){.header-right{gap:8px}.header-right .online{display:none}.profile-chip{min-width:0;padding:6px}.profile-fields input{width:85px}.profile-fields small{max-width:90px;overflow:hidden;text-overflow:ellipsis}.creator-line{flex-wrap:wrap}}
+
+.request-actions{display:flex;gap:8px;align-items:center}
+.request-actions button{min-width:66px}
+.role-requests p{margin:4px 0;color:#7d879e;font-size:13px}

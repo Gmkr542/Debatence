@@ -77,3 +77,10 @@ Evidence uploads are written to the API's local `uploads/` directory. Render web
 - Evidence attachments (local development storage)
 
 This starter is not production-ready. Add authentication, authorization, database migrations, upload scanning/limits, moderation, and durable object storage before public use.
+
+
+## Debate role requests (cross-device)
+
+Viewer requests are now stored by the API in the `debate_role_requests` table. The debate initiator can see pending requests on any device and approve or reject them. Approval persists the user's `Debater` role for that debate in `debate_member_roles`; the client reads the role from the API when opening the debate.
+
+The backend currently uses the user/initiator IDs supplied by the client for these checks. This makes the flow persist across devices, but is not a substitute for authenticated accounts and verified authorization. Add account authentication before treating role changes as security-sensitive in production.
