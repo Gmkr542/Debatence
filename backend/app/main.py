@@ -37,6 +37,17 @@ def create_debate(payload: schemas.DebateCreate, db: Session = Depends(get_db)):
     db.refresh(debate)
     return debate
 
+
+@app.delete("/api/debates/{debate_id}", status_code=204)
+def delete_debate(debate_id: int, db: Session = Depends(get_db)):
+    """Delete a debate and its associated arguments."""
+    debate = db.query(models.Debate).filter(models.Debate.id == debate_id).first()
+    if not debate:
+        raise HTTPException(404, "Debate not found")
+    db.delete(debate)
+    db.commit()
+    return None
+
 @app.get("/api/debates/{debate_id}", response_model=schemas.DebateOut)
 def get_debate(debate_id: int, db: Session = Depends(get_db)):
     debate = db.query(models.Debate).filter(models.Debate.id == debate_id).first()
